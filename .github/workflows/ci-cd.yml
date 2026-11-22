@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  IMAGE_NAME: calculation-model
+  IMAGE_NAME: 601_module_12-user_calculation
 
 jobs:
   test:

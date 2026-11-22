@@ -1,5 +1,17 @@
 # Reflection: User & Calculation Routes with Integration Testing
 
+## Module 12 reflection
+
+Module 12 connected the pieces I built in Modules 10 and 11 into a working API. My existing User and Calculation SQLAlchemy models needed almost no changes: the registration route passes a validated `UserCreate` to my `create_user` function, and the calculation routes reuse the polymorphic `Calculation.create` factory, so Add, Sub, Multiply and Divide each compute their own result. Because my Pydantic schemas already defined valid input, they translated directly into route-level behaviour. FastAPI rejects bad data with a 422 before any database code runs, and `CalculationRead` and `UserRead` control exactly what each response contains.
+
+Integration testing with `pytest` showed me these endpoints stay reliable. My tests call every route through FastAPI's `TestClient`, then read the PostgreSQL tables back with plain SQL to confirm that rows are really created, updated and deleted, and that invalid requests store nothing. Docker Compose runs the same PostgreSQL 17 database locally that GitHub Actions starts as a service, so a passing test means the same thing on my laptop and in CI.
+
+For security, passwords are stored only as bcrypt hashes and verified with a hash check at login, which then issues a signed JWT that expires after 30 minutes. `/users/me` rejects missing or invalid tokens with a 401, and no response ever includes a password hash. The main gap I found is ownership: the calculation routes don't yet check that the logged-in user owns a calculation, so requiring a token there and comparing user IDs is my next improvement.
+
+---
+
+# Development notes
+
 ## What I learned
 
 This assignment turned a calculation model into a complete, tested web API. I learned how

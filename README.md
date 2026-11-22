@@ -7,6 +7,9 @@ covered by unit, integration and end-to-end tests that run in GitHub Actions,
 and every successful build on `main` publishes a scanned Docker image to
 Docker Hub.
 
+- **Docker Hub:** [av477/601_module_12-user_calculation](https://hub.docker.com/r/av477/601_module_12-user_calculation)
+- **Reflection:** [REFLECTION.md](REFLECTION.md)
+
 ---
 
 ## Contents
@@ -24,6 +27,7 @@ Docker Hub.
 - [CI/CD pipeline](#cicd-pipeline)
 - [Docker Hub image](#docker-hub-image)
 - [Troubleshooting](#troubleshooting)
+- [Reflection](#reflection)
 
 ---
 
@@ -405,15 +409,21 @@ In GitHub go to **Settings → Secrets and variables → Actions → New reposit
 After a successful run on `main`, the image is available as:
 
 ```
-<your-dockerhub-username>/601_module_12-user_calculation:latest
+av477/601_module_12-user_calculation:latest
 ```
 
-Docker Hub page: `https://hub.docker.com/r/<your-dockerhub-username>/601_module_12-user_calculation`
+Docker Hub repository: **[av477/601_module_12-user_calculation](https://hub.docker.com/r/av477/601_module_12-user_calculation)**
+
+Pull it with:
+
+```bash
+docker pull av477/601_module_12-user_calculation:latest
+```
 
 Run it against your own PostgreSQL database:
 
 ```bash
-docker run -p 8000:8000 -e DATABASE_URL=postgresql+psycopg2://appuser:apppassword@host.docker.internal:5432/secure_users -e JWT_SECRET_KEY=<your-secret> <your-dockerhub-username>/601_module_12-user_calculation:latest
+docker run -p 8000:8000 -e DATABASE_URL=postgresql+psycopg2://appuser:apppassword@host.docker.internal:5432/secure_users -e JWT_SECRET_KEY=<your-secret> av477/601_module_12-user_calculation:latest
 ```
 
 The container applies the migrations on start, then serves the API on port 8000.
@@ -431,3 +441,34 @@ The container applies the migrations on start, then serves the API on port 8000.
 | `401 Invalid or expired token` | Log in again. Tokens last `ACCESS_TOKEN_EXPIRE_MINUTES`, and tokens signed with a different `JWT_SECRET_KEY` are rejected. |
 | Trivy step fails in CI | Read the table in the job log and upgrade the listed package to its *Fixed Version* in `requirements.txt`. |
 | Docker Hub push step fails | Check that the `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` secrets are set. |
+
+---
+
+## Reflection
+
+
+The biggest challenge in this assignment came after all the tests were already passing.
+I had added login tokens using PyJWT, and every unit, integration and end-to-end test
+was green, but the CI pipeline still failed and no Docker image was pushed. The failing
+step was the Trivy security scan: the PyJWT version I had pinned (2.10.1) had several
+known vulnerabilities, including a critical authentication bypass. Upgrading to a
+patched release (2.15.1) fixed the scan without any code changes, and the tests confirmed
+that nothing broke.
+
+I hit a smaller but confusing problem along the way. My end-to-end tests failed with a
+`DuplicateTable` error, even though the migrations were correct. The test helper called
+`Base.metadata.drop_all()` before the models had been imported, so SQLAlchemy didn't know
+which tables existed and dropped nothing. Importing the models in the helper fixed it.
+
+What I learned:
+
+- **Passing tests don't mean a release is safe.** A dependency can be correct and still
+  insecure, so automated vulnerability scanning belongs in the pipeline, and pinned
+  versions need to be reviewed and updated regularly.
+- **Security libraries deserve extra care.** A bug in the library that checks tokens
+  directly weakens authentication, so it's worth checking advisories before choosing a version.
+- **SQLAlchemy only knows about models that have been imported.** Problems with
+  `create_all` or `drop_all` are often caused by missing imports, not broken database code.
+- **Checking the database directly makes tests more trustworthy.** Reading rows back with
+  plain SQL after each API call proved that data, including the bcrypt hash, was really
+  stored, and that rejected requests left nothing behind.

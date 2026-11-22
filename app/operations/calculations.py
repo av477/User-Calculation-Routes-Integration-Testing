@@ -41,6 +41,12 @@ def list_calculations(db: Session, user_id: UUID | None = None) -> list[Calculat
     return list(db.scalars(query))
 
 
+def delete_calculation(db: Session, calculation: Calculation) -> None:
+    """Remove a stored calculation."""
+    db.delete(calculation)
+    db.commit()
+
+
 def update_calculation(
     db: Session, calculation: Calculation, changes: CalculationUpdate
 ) -> Calculation:

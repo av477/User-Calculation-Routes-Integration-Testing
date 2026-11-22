@@ -34,6 +34,8 @@ jobs:
 
     env:
       DATABASE_URL: postgresql+psycopg2://ci_user:ci_password@localhost:5432/ci_users
+      # Signs the login tokens issued during the tests (test-only value).
+      JWT_SECRET_KEY: ci-only-test-secret-not-used-anywhere-else-0123456789
 
     steps:
       - uses: actions/checkout@v4

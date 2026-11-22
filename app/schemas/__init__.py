@@ -7,7 +7,7 @@ from app.schemas.calculation import (
     CalculationResult,
     CalculationUpdate,
 )
-from app.schemas.user import UserCalculations, UserCreate, UserLogin, UserRead
+from app.schemas.user import Token, UserCalculations, UserCreate, UserLogin, UserRead
 
 __all__ = [
     "CalculationBase",
@@ -15,6 +15,7 @@ __all__ = [
     "CalculationRead",
     "CalculationResult",
     "CalculationUpdate",
+    "Token",
     "UserCalculations",
     "UserCreate",
     "UserLogin",

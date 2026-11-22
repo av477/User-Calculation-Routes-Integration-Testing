@@ -10,7 +10,7 @@ pytestmark = pytest.mark.integration
 @pytest.fixture
 def user_id(client):
     response = client.post(
-        "/users",
+        "/users/register",
         json={"username": "calc_api", "email": "calc_api@example.com", "password": "Secret123"},
     )
     assert response.status_code == 201
@@ -145,3 +145,90 @@ def test_patch_needs_a_value(client, user_id):
 
 def test_patch_missing_calculation_returns_404(client):
     assert client.patch(f"/calculations/{uuid.uuid4()}", json={"a": 1}).status_code == 404
+
+
+# ----- DELETE /calculations/{id} ---------------------------------------------
+
+
+def test_delete_calculation_returns_204_and_removes_it(client, user_id):
+    calc = create(client, user_id).json()
+
+    response = client.delete(f"/calculations/{calc['id']}")
+
+    assert response.status_code == 204
+    assert response.content == b""
+    assert client.get(f"/calculations/{calc['id']}").status_code == 404
+    assert client.get("/calculations").json() == []
+
+
+def test_delete_only_removes_that_calculation(client, user_id):
+    keep = create(client, user_id, type="Add").json()
+    gone = create(client, user_id, type="Sub").json()
+
+    assert client.delete(f"/calculations/{gone['id']}").status_code == 204
+
+    assert client.get("/calculations").json() == [keep]
+    owner = client.get(f"/users/{user_id}/calculations").json()
+    assert owner["calculation_count"] == 1
+    assert [c["id"] for c in owner["calculations"]] == [keep["id"]]
+
+
+def test_delete_keeps_the_user(client, user_id):
+    calc = create(client, user_id).json()
+    client.delete(f"/calculations/{calc['id']}")
+    assert client.get(f"/users/{user_id}").status_code == 200
+
+
+def test_delete_twice_returns_404(client, user_id):
+    calc = create(client, user_id).json()
+
+    assert client.delete(f"/calculations/{calc['id']}").status_code == 204
+    second = client.delete(f"/calculations/{calc['id']}")
+    assert second.status_code == 404
+    assert second.json()["detail"] == "Calculation not found"
+
+
+def test_delete_missing_calculation_returns_404(client):
+    assert client.delete(f"/calculations/{uuid.uuid4()}").status_code == 404
+
+
+def test_delete_with_malformed_id_returns_422(client):
+    assert client.delete("/calculations/42").status_code == 422
+
+
+def test_edit_after_delete_returns_404(client, user_id):
+    calc = create(client, user_id).json()
+    client.delete(f"/calculations/{calc['id']}")
+    assert client.patch(f"/calculations/{calc['id']}", json={"a": 1}).status_code == 404
+
+
+# ----- Full BREAD cycle --------------------------------------------------------
+
+
+def test_full_bread_cycle(client, user_id):
+    # Add
+    added = client.post(
+        "/calculations", json={"a": 6, "b": 3, "type": "Multiply", "user_id": user_id}
+    )
+    assert added.status_code == 201
+    calc_id = added.json()["id"]
+    assert added.json()["result"] == 18
+
+    # Browse
+    assert [c["id"] for c in client.get("/calculations").json()] == [calc_id]
+
+    # Read
+    read = client.get(f"/calculations/{calc_id}")
+    assert read.status_code == 200
+    assert read.json() == added.json()
+
+    # Edit
+    edited = client.patch(f"/calculations/{calc_id}", json={"a": 10, "b": 5})
+    assert edited.status_code == 200
+    assert (edited.json()["a"], edited.json()["b"], edited.json()["result"]) == (10, 5, 50)
+    assert client.get(f"/calculations/{calc_id}").json()["result"] == 50
+
+    # Delete
+    assert client.delete(f"/calculations/{calc_id}").status_code == 204
+    assert client.get(f"/calculations/{calc_id}").status_code == 404
+    assert client.get("/calculations").json() == []

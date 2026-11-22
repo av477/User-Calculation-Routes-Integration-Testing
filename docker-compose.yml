@@ -33,6 +33,8 @@ services:
     environment:
       # Inside the compose network Postgres is reached by its service name.
       DATABASE_URL: postgresql+psycopg2://appuser:apppassword@db:5432/secure_users
+      # Signs login tokens. Set JWT_SECRET_KEY in your shell or .env for real use.
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-only-change-me-please-use-a-long-random-secret}
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:

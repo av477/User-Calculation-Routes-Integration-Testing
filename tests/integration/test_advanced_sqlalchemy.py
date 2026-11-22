@@ -243,7 +243,7 @@ def test_calculation_count_in_queries(db_session):
 
 def test_user_calculations_route(client):
     user = client.post(
-        "/users",
+        "/users/register",
         json={"username": "route_user", "email": "route@example.com", "password": "Secret123"},
     ).json()
     for calculation_type in ("Add", "Divide"):

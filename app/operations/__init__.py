@@ -3,6 +3,7 @@
 from app.operations.calculations import (
     UserNotFoundError,
     create_calculation,
+    delete_calculation,
     get_calculation,
     list_calculations,
     update_calculation,
@@ -22,6 +23,7 @@ __all__ = [
     "authenticate_user",
     "create_calculation",
     "create_user",
+    "delete_calculation",
     "get_calculation",
     "get_user",
     "get_user_by_login",

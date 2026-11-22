@@ -11,6 +11,7 @@ from app.models import Addition, Calculation, Division, Multiplication, Subtract
 from app.operations import (
     UserNotFoundError,
     create_calculation,
+    delete_calculation,
     get_calculation,
     list_calculations,
     update_calculation,
@@ -191,3 +192,13 @@ def test_failed_update_leaves_calculation_unchanged(db_session, user):
     db_session.expire_all()
     loaded = get_calculation(db_session, calc.id)
     assert (loaded.a, loaded.b, loaded.result) == (8, 2, 4)
+
+
+
+def test_delete_calculation_removes_row_but_keeps_user(db_session, user):
+    calc = create_calculation(db_session, CalculationCreate(a=1, b=2, type="Add", user_id=user.id))
+
+    delete_calculation(db_session, calc)
+
+    assert get_calculation(db_session, calc.id) is None
+    assert db_session.get(User, user.id) is not None

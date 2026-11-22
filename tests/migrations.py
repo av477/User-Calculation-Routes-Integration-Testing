@@ -6,6 +6,7 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import Engine, text
 
+import app.models  # noqa: F401  (registers every model, so drop_all() sees them)
 from app.database import Base
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

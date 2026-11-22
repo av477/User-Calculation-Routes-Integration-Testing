@@ -62,10 +62,19 @@ class UserRead(BaseModel):
 
 
 class UserLogin(BaseModel):
-    """Credentials for checking a password against the stored hash."""
+    """Login credentials. ``username`` may also be the account's email address."""
 
-    username: str
-    password: str
+    username: str = Field(min_length=1)
+    password: str = Field(min_length=1)
+
+
+class Token(BaseModel):
+    """Answer from POST /users/login: a bearer token plus who it belongs to."""
+
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int  # seconds until the token expires
+    user: UserRead
 
 
 class UserCalculations(UserRead):
